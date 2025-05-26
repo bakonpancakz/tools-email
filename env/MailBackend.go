@@ -8,7 +8,7 @@ import (
 	"net/mail"
 	"time"
 
-	"github.com/bakonpancakz/project-suzzy/email/include"
+	"github.com/bakonpancakz/tools-email/email/include"
 	"github.com/emersion/go-msgauth/dkim"
 	"github.com/emersion/go-sasl"
 	"github.com/emersion/go-smtp"

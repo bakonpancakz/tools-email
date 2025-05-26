@@ -1,4 +1,4 @@
-module github.com/bakonpancakz/project-suzzy/email
+module github.com/bakonpancakz/tools-email/email
 
 go 1.24.1
 

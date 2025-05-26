@@ -51,7 +51,7 @@ Content-Type: application/json
     "from_name": "Support",
     "from_address": "support@example.org",
     "subject": "Hello World!",
-    "content": "<h1>Service successfully setup! Now enjoy your image!</h1> <img src='cid:teto.png' alt='Kasane Teto!'/>",
+    "content": "<h1>Service successfully setup! Now enjoy your teto!</h1> <img src='cid:teto.png' alt='Kasane Teto!'/>",
     "html": true,
     "attachments": [{
         "content_type": "image/png",

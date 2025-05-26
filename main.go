@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/bakonpancakz/project-suzzy/email/env"
+	"github.com/bakonpancakz/tools-email/email/env"
 	"github.com/emersion/go-smtp"
 	"github.com/go-playground/validator/v10"
 )

@@ -11,9 +11,7 @@ import (
 	"strings"
 	"time"
 
-	_ "embed"
-
-	"github.com/bakonpancakz/project-suzzy/email/include"
+	"github.com/bakonpancakz/tools-email/email/include"
 	_ "github.com/joho/godotenv/autoload"
 )
 
