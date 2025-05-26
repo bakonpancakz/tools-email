@@ -40,7 +40,7 @@ The request body should be a JSON object with the email content:
 
 ### Request Example
 
-```json
+```http
 POST / HTTP/1.1
 Authorization: teto
 Content-Type: application/json
