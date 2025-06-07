@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Type" content="text/html charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+</head>
+
+<body style="margin: 0;">
+    <table width="100%" height="100%" style="background-color: #ebebeb; margin: 0; padding: 0;">
+        <tr>
+            <td>
+                <table style="background-color: #f0f0f0; border: 2px solid #a0a0a0; border-top: none; border-bottom: none; max-width: 600px; width: 100%; margin: auto;">
+                    <!-- Header -->
+                    <tr>
+                        <td style="padding: 20px; padding-bottom: 0;">
+                            <a href="https://example.org/">
+                                <img src="cid:logo.png" height="32">
+                            </a>
+                        </td>
+                    </tr>
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 0 20px;">
+                            {{block "content" .}}{{end}}
+                        </td>
+                    </tr>
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 20px;">
+                            <div style="width: 100%; height: 2px; margin: auto; background-color: #a0a0a0;"></div>
+                            <p style="font-family: sans-serif;  font-size: small; color: #a0a0a0; text-align: center;">
+                                © 2025 Example Inc. All Rights Reserved.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+
+</html>
