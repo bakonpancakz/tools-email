@@ -9,14 +9,15 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"text/template"
 	"time"
 )
 
-const (
-	CONTEXT_TIMEOUT   = 10 * time.Second
-	CLIENT_PASSPHRASE = "teto"
-	CLIENT_ADDRESS    = "localhost:443"
+var (
+	CONTEXT_TIMEOUT = 10 * time.Second
+	SMTP_DOMAIN     = envString("SMTP_DOMAIN", "example.org")
+	HTTP_ADDRESS    = envString("HTTP_ADDRESS", "http://localhost:80/queue")
 )
 
 var (
@@ -71,7 +72,7 @@ func loadTemplate[L any](filename, subjectLine string) func(emailAddress string,
 			}},
 			"from": map[string]any{
 				"name":    "Example Inc. Accounts",
-				"address": "noreply@example.org",
+				"address": "noreply@" + SMTP_DOMAIN,
 			},
 			"subject": subjectLine,
 			"content": output.String(),
@@ -94,7 +95,6 @@ func loadTemplate[L any](filename, subjectLine string) func(emailAddress string,
 		if err != nil {
 			return err
 		}
-		request.Header.Add("Authorization", CLIENT_PASSPHRASE)
 		request.Header.Set("Content-Type", "application/json")
 
 		// Validate Response
@@ -112,4 +112,16 @@ func loadTemplate[L any](filename, subjectLine string) func(emailAddress string,
 		log.Printf("Outgoing Email: %s => %s\n", filename, emailAddress)
 		return nil
 	}
+}
+
+func envString(field, initial string) string {
+	var Value = os.Getenv(field)
+	if Value == "" {
+		if initial == "\x00" {
+			fmt.Printf("Variable '%s' was not set\n", field)
+			os.Exit(2)
+		}
+		return initial
+	}
+	return Value
 }
