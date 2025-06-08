@@ -14,9 +14,8 @@ import (
 )
 
 const (
-	CONTEXT_TIMEOUT   = 10 * time.Second
-	CLIENT_PASSPHRASE = "teto"
-	CLIENT_ADDRESS    = "localhost:443"
+	CONTEXT_TIMEOUT = 10 * time.Second
+	CLIENT_ADDRESS  = "http://localhost:80/queue"
 )
 
 var (
@@ -94,7 +93,6 @@ func loadTemplate[L any](filename, subjectLine string) func(emailAddress string,
 		if err != nil {
 			return err
 		}
-		request.Header.Add("Authorization", CLIENT_PASSPHRASE)
 		request.Header.Set("Content-Type", "application/json")
 
 		// Validate Response

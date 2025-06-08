@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -15,14 +16,14 @@ import (
 	"github.com/bakonpancakz/tools-email/email"
 )
 
-const (
-	PATH_RSA     = "dkim_rsa.pem"
-	PATH_TLS_KEY = "tls_key.pem"
-	PATH_TLS_CRT = "tls_crt.pem"
-	PATH_TLS_CA  = "tls_ca.pem"
-	DOMAIN       = "example.org"   // Domain to advertise for SMTP Server
-	ADDRESS_SMTP = "localhost:587" // Port 587 with TLS, port 25 without
-	ADDRESS_HTTP = "localhost:443" // Port 443 for HTTPS, 80 for HTTP
+var (
+	PATH_RSA     = envString("PATH_RSA", "dkim_rsa.pem")
+	PATH_TLS_KEY = envString("PATH_TLS_KEY", "tls_key.pem")
+	PATH_TLS_CRT = envString("PATH_TLS_CRT", "tls_crt.pem")
+	PATH_TLS_CA  = envString("PATH_TLS_CA", "tls_ca.pem")
+	SMTP_DOMAIN  = envString("SMTP_DOMAIN", "example.org")
+	SMTP_ADDRESS = envString("SMTP_ADDRESS", "0.0.0.0:25")
+	HTTP_ADDRESS = envString("HTTP_ADDRESS", "0.0.0.0:80")
 )
 
 //go:embed noreply.html
@@ -33,12 +34,25 @@ var noReplyImage []byte
 
 func init() {
 	// Preprocess Template
-	noReplyIndex = strings.ReplaceAll(noReplyIndex, "{{DOMAIN}}", DOMAIN)
+	noReplyIndex = strings.ReplaceAll(noReplyIndex, "{{DOMAIN}}", SMTP_DOMAIN)
+}
+
+// Reads Variable from Environment
+func envString(field, initial string) string {
+	var Value = os.Getenv(field)
+	if Value == "" {
+		if initial == "\x00" {
+			fmt.Printf("Variable '%s' was not set\n", field)
+			os.Exit(2)
+		}
+		return initial
+	}
+	return Value
 }
 
 func main() {
 	// Create a new engine instance for our domain
-	e := email.New(DOMAIN)
+	e := email.New(SMTP_DOMAIN)
 
 	// Setting Handlers
 	// 	The Default Error Handler collects a stack trace and outputs to stderr which is fine
@@ -89,12 +103,6 @@ func main() {
 		return nil
 	})
 
-	// 	Although nothing is done with the provided DMARC email you should probably register
-	// 	an inbox for them otherwise your mailserver might get flagged as spam
-	e.RegisterInbox("dmarc", func(em *email.Email) error {
-		return nil
-	})
-
 	// Using Middleware
 	// 	We can use middleware to filter inbound emails or cancel outbound emails.
 	// 	Additionally we can provide an error which will be passed to our engine error handler.
@@ -122,15 +130,16 @@ func main() {
 	if err := e.SetupDKIM(PATH_RSA); err != nil {
 		log.Fatalln("Cannot Setup DKIM: ", err)
 	}
-	if err := e.SetupTLS(PATH_TLS_KEY, PATH_TLS_CRT, PATH_TLS_CA); err != nil {
+	if err := e.SetupTLS(PATH_TLS_CRT, PATH_TLS_KEY, PATH_TLS_CA); err != nil {
 		log.Fatalln("Cannot Setup TLS:", err)
 	}
+	e.TLSEnabledHttp = false
 
 	// Server Shutdown
 	// 	Example Graceful shutdown on SIGINT/SIGTERM to let the queue flush before exit
 	go func() {
-		log.Println("Starting:", ADDRESS_SMTP, ADDRESS_HTTP)
-		if err := e.Start(ADDRESS_SMTP, ADDRESS_HTTP); err != nil {
+		log.Println("Starting:", SMTP_ADDRESS, HTTP_ADDRESS)
+		if err := e.Start(SMTP_ADDRESS, HTTP_ADDRESS); err != nil {
 			log.Fatalln("Startup Error:", err)
 		}
 	}()
