@@ -40,9 +40,10 @@ type Engine struct {
 	HandlerNoInbox        HandlerEmail            // Provided No Inbox Handler
 	HandlerAuthorization  HandlerAuthorization    // Determines if a REST API request is authorized
 	inboxes               map[string]HandlerEmail // Incoming Email Inbox Handlers
-	TLSConfig             *tls.Config             // Shared TLS Configuration
+	TLSEnabledHttp        bool                    // Use TLS for HTTP Server
+	TLSConfig             *tls.Config             // TLS Configuration for SMTP
 	smtpServer            *smtp.Server            // Email Server
-	httpServer            *http.Server            // REST API Server
+	httpServer            *http.Server            // HTTP Server
 }
 
 // Startup the REST API, SMTP Server, and Outbound Queue Threads.
@@ -59,7 +60,7 @@ func (e *Engine) Start(smtpAddr, httpAddr string) error {
 		ReadTimeout:  e.IncomingTimeout,
 	}
 	go func() {
-		if e.TLSConfig != nil {
+		if e.TLSEnabledHttp {
 			listenErr <- httpServer.ListenAndServeTLS("", "")
 		} else {
 			listenErr <- httpServer.ListenAndServe()
@@ -77,11 +78,7 @@ func (e *Engine) Start(smtpAddr, httpAddr string) error {
 	smtpServer.TLSConfig = e.TLSConfig
 	smtpServer.MaxRecipients = e.IncomingMaxRecipients
 	go func() {
-		if e.TLSConfig != nil {
-			listenErr <- smtpServer.ListenAndServeTLS()
-		} else {
-			listenErr <- smtpServer.ListenAndServe()
-		}
+		listenErr <- smtpServer.ListenAndServe()
 	}()
 	e.smtpServer = smtpServer
 
@@ -138,7 +135,7 @@ func (e *Engine) Shutdown(ctx context.Context) {
 // Default Error Logger, prints a stack trace and error to stderr
 func DefaultHandlerError(err error) {
 	b := make([]byte, 4096)
-	n := runtime.Stack(b, true)
+	n := runtime.Stack(b, false)
 	fmt.Fprintf(os.Stderr, "%s\n%s\n", err, b[:n])
 }
 

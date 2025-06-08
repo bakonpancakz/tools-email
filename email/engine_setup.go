@@ -28,6 +28,7 @@ func (e *Engine) SetupTLS(cert string, key string, ca string) error {
 	}
 
 	// compatiblity be damned
+	e.TLSEnabledHttp = true
 	e.TLSConfig = &tls.Config{
 		Certificates: []tls.Certificate{pair},
 		ClientCAs:    caPool,
