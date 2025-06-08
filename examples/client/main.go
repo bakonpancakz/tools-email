@@ -91,7 +91,7 @@ func loadTemplate[L any](filename, subjectLine string) func(emailAddress string,
 		// Generate Request
 		ctx, cancel := context.WithTimeout(context.Background(), CONTEXT_TIMEOUT)
 		defer cancel()
-		request, err := http.NewRequestWithContext(ctx, "POST", CLIENT_ADDRESS, bytes.NewReader(payload))
+		request, err := http.NewRequestWithContext(ctx, "POST", HTTP_ADDRESS, bytes.NewReader(payload))
 		if err != nil {
 			return err
 		}
