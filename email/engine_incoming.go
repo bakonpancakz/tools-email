@@ -18,7 +18,7 @@ func (e *Engine) UseIncoming(handler HandlerMiddleware) {
 
 // Register an Inbox to Handle Incoming Emails
 func (e *Engine) RegisterInbox(username string, handler HandlerEmail) error {
-	address := fmt.Sprintf(username, "@", e.Domain)
+	address := fmt.Sprint(username, "@", e.Domain)
 	if _, exists := e.inboxes[address]; exists {
 		return fmt.Errorf("duplicate inbox address: %s", address)
 	}

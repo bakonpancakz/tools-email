@@ -17,6 +17,12 @@ import (
 )
 
 var (
+	//go:embed noreply.html
+	noReplyIndex string
+
+	//go:embed noreply.png
+	noReplyImage []byte
+
 	PATH_RSA     = envString("PATH_RSA", "dkim_rsa.pem")
 	PATH_TLS_KEY = envString("PATH_TLS_KEY", "tls_key.pem")
 	PATH_TLS_CRT = envString("PATH_TLS_CRT", "tls_crt.pem")
@@ -26,28 +32,9 @@ var (
 	HTTP_ADDRESS = envString("HTTP_ADDRESS", "0.0.0.0:80")
 )
 
-//go:embed noreply.html
-var noReplyIndex string
-
-//go:embed noreply.png
-var noReplyImage []byte
-
 func init() {
 	// Preprocess Template
 	noReplyIndex = strings.ReplaceAll(noReplyIndex, "{{DOMAIN}}", SMTP_DOMAIN)
-}
-
-// Reads Variable from Environment
-func envString(field, initial string) string {
-	var Value = os.Getenv(field)
-	if Value == "" {
-		if initial == "\x00" {
-			fmt.Printf("Variable '%s' was not set\n", field)
-			os.Exit(2)
-		}
-		return initial
-	}
-	return Value
 }
 
 func main() {
@@ -159,4 +146,16 @@ func main() {
 	e.Shutdown(timeout)
 	log.Println("All done, bye bye!")
 	os.Exit(0)
+}
+
+func envString(field, initial string) string {
+	var Value = os.Getenv(field)
+	if Value == "" {
+		if initial == "\x00" {
+			fmt.Printf("Variable '%s' was not set\n", field)
+			os.Exit(2)
+		}
+		return initial
+	}
+	return Value
 }
