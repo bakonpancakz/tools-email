@@ -61,7 +61,7 @@ func (e *Engine) SendEmail(email *Email) error {
 		// Create New Envelope for Recipient
 		var envelope bytes.Buffer
 		builder := enmime.Builder().
-			From(email.From.Address, email.From.Name).
+			From(email.From.Name, email.From.Address).
 			To(addressee.Name, addressee.Address).
 			Subject(email.Subject)
 
@@ -93,7 +93,7 @@ func (e *Engine) SendEmail(email *Email) error {
 		var complete bytes.Buffer
 		if e.OutgoingDKIMEnabled {
 			// Sign Email using DKIM Key
-			if err := dkim.Sign(&envelope, &complete, &dkim.SignOptions{
+			if err := dkim.Sign(&complete, &envelope, &dkim.SignOptions{
 				Domain:   e.Domain,
 				Signer:   e.OutgoingDKIMSigner,
 				Selector: e.OutgoingSelectorName,
@@ -143,7 +143,7 @@ func (e *Engine) SendEmail(email *Email) error {
 			}
 			return nil
 		}
-		return fmt.Errorf("email delivery failed: %s", strings.Join(attemptErrors, "\n"))
+		return fmt.Errorf("email delivery failed:\n %s", strings.Join(attemptErrors, "\n"))
 	}
 	return nil
 }
