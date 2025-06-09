@@ -1,6 +1,7 @@
 package email
 
 import (
+	"crypto"
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
@@ -10,26 +11,21 @@ import (
 	"os"
 )
 
-// Specify a path to a SSL Certificate, Key, and Certificate Authority Bundle
-func (e *Engine) SetupTLS(cert string, key string, ca string) error {
-
-	// Read and Parse from Disk
+// Provide a path to an SSL Certificate, Key, and CA Bundle for parsing. Returning a TLS v1.3 Configuration
+func LoadTLSConfig(cert string, key string, ca string) (*tls.Config, error) {
 	pair, err := tls.LoadX509KeyPair(cert, key)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	caBytes, err := os.ReadFile(ca)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	caPool := x509.NewCertPool()
 	if !caPool.AppendCertsFromPEM(caBytes) {
-		return fmt.Errorf("bad response from AppendCertsFromPEM")
+		return nil, fmt.Errorf("invalid or malformed certificate(s) in CA bundle")
 	}
-
-	// compatiblity be damned
-	e.TLSEnabledHttp = true
-	e.TLSConfig = &tls.Config{
+	return &tls.Config{
 		Certificates: []tls.Certificate{pair},
 		ClientCAs:    caPool,
 		MinVersion:   tls.VersionTLS13,
@@ -39,30 +35,23 @@ func (e *Engine) SetupTLS(cert string, key string, ca string) error {
 			tls.TLS_AES_256_GCM_SHA384,
 			tls.TLS_CHACHA20_POLY1305_SHA256,
 		},
-	}
-	return nil
+	}, nil
 }
 
-// Specify Location to RSA Key for use with DKIM Signing
-func (e *Engine) SetupDKIM(key string) error {
-
-	// Read and Parse from Disk
+// Provide a path to an PKCS#8 Encoded RSA Private Key. Returning a crypto.Signer instance
+func LoadDKIMSigner(key string) (crypto.Signer, error) {
 	b, err := os.ReadFile(key)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	p, _ := pem.Decode(b)
 	pkey, err := x509.ParsePKCS8PrivateKey(p.Bytes)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	v, ok := pkey.(*rsa.PrivateKey)
 	if !ok {
-		return errors.New("expected rsa private key")
+		return nil, errors.New("expected rsa private key")
 	}
-
-	// Enable Outgoing DKIM Signing on Server
-	e.OutgoingDKIMEnabled = true
-	e.OutgoingDKIMSigner = v
-	return nil
+	return v, nil
 }
