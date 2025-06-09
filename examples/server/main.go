@@ -44,11 +44,12 @@ func main() {
 	// Setting Handlers
 	// 	The Default Error Handler collects a stack trace and outputs to stderr which is fine
 	// 	for our example, but could harshly affect performance in a production environment.
-	e.HandlerError = email.DefaultHandlerError
+	e.ErrorLogger = email.DefaultErrorLogger
 
-	// 	The Default Authorization Handler checks the Incoming Requests Authorization Header for the passphrase "teto".
-	// 	This insecure and should be replaced with a custom handler used for filtering incoming requests to the REST API.
-	e.HandlerAuthorization = func(r *http.Request) bool {
+	// By default the Auth Handler only allow requests from a loopback address
+	// You can implement your own authorization handler, below are a few examples you can implement,
+	// but for this example server we'll be accepting all incoming requests.
+	e.AuthHandler = func(r *http.Request) bool {
 		// Example 1: Passphrase
 		// 	Compare Authorization Header against a string (preferable from environment variables)
 		// return r.Header.Get("Authorization") == "KasaneTeto0401"
@@ -59,13 +60,15 @@ func main() {
 
 		// Example 3: Allow all
 		// 	Don't do this but you could if you really wanted to... (>_>)
+
+		log.Println("Incoming Requests from:", r.RemoteAddr)
 		return true
 	}
 
 	// In the case an email comes in with no valid recipient we can write a function to log the email.
 	// 	Please note that the SMTP Server will still respond with a '550 Invalid Recipient'
 	// 	error and this behaviour cannot be modified.
-	e.HandlerNoInbox = func(e *email.Email) error {
+	e.NoInboxHandler = func(e *email.Email) error {
 		log.Printf("No Inbox for To=%v, Subject=%q, From=%q\n", e.To, e.Subject, e.From)
 		return nil
 	}
@@ -92,7 +95,7 @@ func main() {
 
 	// Using Middleware
 	// 	We can use middleware to filter inbound emails or cancel outbound emails.
-	// 	Additionally we can provide an error which will be passed to our engine error handler.
+	// 	Additionally we can provide an error which will be passed to our engine error logger.
 	e.UseIncoming(func(em *email.Email) (bool, error) {
 		// Example: Basic Spam Filter
 		if em.From.Address == "hatsunemiku@crypton.co.jp" {
@@ -100,37 +103,34 @@ func main() {
 		}
 		return true, nil
 	})
+	// Example: Basic Inbound Email Logger
 	e.UseIncoming(func(em *email.Email) (bool, error) {
-		// Example: Basic Inbound Logger
 		log.Println("Incoming Email from", em.From.Address)
 		return true, nil
 	})
+	// Example: Basic Outbound Email Logger
 	e.UseOutgoing(func(em *email.Email) (bool, error) {
-		// Example: Basic Outbound Logger
 		log.Println("Sending Email with Subject", em.Subject)
 		return true, nil
 	})
 
-	// Initialize TLS and DKIM
-	// 	We can use these setup functions to handle reading and parsing our TLS Configuration and DKIM Key
-	// 	You can set these manually by modifying the TLSConfig, OutgoingDKIMSigner, and OutgoingDKIMEnabled fields
-	if err := e.SetupDKIM(PATH_RSA); err != nil {
-		log.Fatalln("Cannot Setup DKIM: ", err)
+	// Startup Servers
+	// 	We use the provided Load functions to quickly parse and initialize a TLS Configuration and DKIM Signer.
+	// 	For this example TLS on the REST API is disabled by passing nil, but you should enable this in production.
+	dkimSigner, err := email.LoadDKIMSigner(PATH_RSA)
+	if err != nil {
+		log.Fatalln("Cannot Load DKIM Key: ", err)
 	}
-	if err := e.SetupTLS(PATH_TLS_CRT, PATH_TLS_KEY, PATH_TLS_CA); err != nil {
+	tlsConfig, err := email.LoadTLSConfig(PATH_TLS_CRT, PATH_TLS_KEY, PATH_TLS_CA)
+	if err != nil {
 		log.Fatalln("Cannot Setup TLS:", err)
 	}
-	e.TLSEnabledHttp = false
+	go e.StartSMTP(SMTP_ADDRESS, dkimSigner, tlsConfig)
+	go e.StartHTTP(HTTP_ADDRESS, nil)
 
-	// Server Shutdown
-	// 	Example Graceful shutdown on SIGINT/SIGTERM to let the queue flush before exit
-	go func() {
-		log.Println("Starting:", SMTP_ADDRESS, HTTP_ADDRESS)
-		if err := e.Start(SMTP_ADDRESS, HTTP_ADDRESS); err != nil {
-			log.Fatalln("Startup Error:", err)
-		}
-	}()
-
+	// Shutdown Server
+	// 	We await a SIGINT/SIGTERM signal from the OS, the Shutdown function will return once all connections
+	// 	have closed and all our emails have been sent out.
 	cancel := make(chan os.Signal, 1)
 	signal.Notify(cancel, os.Interrupt, syscall.SIGINT, syscall.SIGTERM)
 	<-cancel
@@ -144,6 +144,7 @@ func main() {
 		}
 	}()
 	e.Shutdown(timeout)
+
 	log.Println("All done, bye bye!")
 	os.Exit(0)
 }

@@ -10,14 +10,14 @@ import (
 )
 
 // Default Error Logger, collects a stack trace and outputs to stderr
-func DefaultHandlerError(err error) {
+func DefaultErrorLogger(err error) {
 	b := make([]byte, 4096)
 	n := runtime.Stack(b, false)
 	fmt.Fprintf(os.Stderr, "%s\n%s\n", err, b[:n])
 }
 
 // Default Authorization Handler, allows all requests from localhost (loopback) by default
-func DefaultHandlerAuthorization(r *http.Request) bool {
+func DefaultAuthHandler(r *http.Request) bool {
 	return net.ParseIP(r.RemoteAddr).IsLoopback()
 }
 
@@ -35,8 +35,8 @@ func New(domain string) Engine {
 		IncomingMaxBytes:      10 << 20,
 		IncomingTimeout:       30 * time.Second,
 		incomingMiddleware:    []HandlerMiddleware{},
-		AuthHandler:           DefaultHandlerAuthorization,
-		ErrorLogger:           DefaultHandlerError,
+		AuthHandler:           DefaultAuthHandler,
+		ErrorLogger:           DefaultErrorLogger,
 		inboxes:               make(map[string]HandlerEmail),
 	}
 }
