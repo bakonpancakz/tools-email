@@ -15,9 +15,10 @@ import (
 )
 
 var (
-	CONTEXT_TIMEOUT = 10 * time.Second
-	SMTP_DOMAIN     = envString("SMTP_DOMAIN", "example.org")
-	HTTP_ADDRESS    = envString("HTTP_ADDRESS", "http://localhost:80/queue")
+	CONTEXT_TIMEOUT  = 10 * time.Second
+	SMTP_DOMAIN      = envString("SMTP_DOMAIN", "example.org")
+	HTTP_ADDRESS     = envString("HTTP_ADDRESS", "http://localhost:80/queue")
+	SMTP_DESTINATION = envString("SMTP_DESTINATION", "user@example.org")
 )
 
 var (
@@ -38,10 +39,10 @@ func main() {
 
 	// You application would then query some data and execute a template
 	// sending the rendered output to the engines REST API
-	outboundAddress := "bakonpancakz@gmail.com"
+	outboundAddress := SMTP_DESTINATION
 	outboundLocals := LocalsForgotPassword{
-		Displayname: "bakonpancakz",
-		Token:       "reset-password-tetoken",
+		Displayname: "Example User",
+		Token:       "example-token",
 	}
 	if err := template(outboundAddress, outboundLocals); err != nil {
 		log.Fatalln("Cannot Send Email:", err)
@@ -71,7 +72,7 @@ func loadTemplate[L any](filename, subjectLine string) func(emailAddress string,
 				"address": emailAddress,
 			}},
 			"from": map[string]any{
-				"name":    "Example Inc. Accounts",
+				"name":    "Example Inc.",
 				"address": "noreply@" + SMTP_DOMAIN,
 			},
 			"subject": subjectLine,

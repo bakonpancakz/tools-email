@@ -76,7 +76,7 @@ func main() {
 	e.RegisterInbox("noreply", func(em *email.Email) error {
 		e.QueueEmail(&email.Email{
 			To:      []email.Address{{Name: em.From.Name, Address: em.From.Address}},
-			From:    email.Address{Name: "Robot", Address: "noreply@" + e.Domain},
+			From:    email.Address{Name: "Example Inc.", Address: "noreply@" + e.Domain},
 			Subject: "beep boop (Need Help?)",
 			Content: noReplyIndex,
 			HTML:    true,
