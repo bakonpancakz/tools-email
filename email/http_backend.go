@@ -44,12 +44,12 @@ func newHttpHandler(e *Engine) *http.ServeMux {
 		for i := range incoming {
 			if err := v.Struct(incoming[i]); err != nil {
 				e.ErrorLogger(fmt.Errorf("validation failed for email at index %d: %s", i, err))
-				http.Error(w, fmt.Sprintf("Validation Failed for Email at Index %d: %s", i, err), http.StatusBadRequest)
-				return
+				http.Error(w, fmt.Sprintf("Validation Failed for Email at Index %d: %s\n", i, err), http.StatusBadRequest)
+				continue
 			}
 			if ok := e.QueueEmail(&incoming[i]); !ok {
-				http.Error(w, fmt.Sprintf("Email queue is full at index: %d", i), http.StatusInternalServerError)
-				return
+				http.Error(w, fmt.Sprintf("Email queue is full at index: %d\n", i), http.StatusInsufficientStorage)
+				continue
 			}
 		}
 
