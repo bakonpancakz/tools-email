@@ -25,7 +25,7 @@ func newHttpHandler(e *Engine) *http.ServeMux {
 			w.WriteHeader(http.StatusRequestEntityTooLarge)
 			return
 		}
-		if !e.HandlerAuthorization(r) {
+		if !e.AuthHandler(r) {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
@@ -35,7 +35,7 @@ func newHttpHandler(e *Engine) *http.ServeMux {
 		decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, e.IncomingMaxBytes))
 		decoder.DisallowUnknownFields()
 		if err := decoder.Decode(&incoming); err != nil {
-			e.HandlerError(fmt.Errorf("error parsing body: %s", err))
+			e.ErrorLogger(fmt.Errorf("error parsing body: %s", err))
 			http.Error(w, "Invalid Form Body", http.StatusUnprocessableEntity)
 			return
 		}
@@ -43,7 +43,7 @@ func newHttpHandler(e *Engine) *http.ServeMux {
 		// Queue Incoming Emails
 		for i := range incoming {
 			if err := v.Struct(incoming[i]); err != nil {
-				e.HandlerError(fmt.Errorf("validation failed for email at index %d: %s", i, err))
+				e.ErrorLogger(fmt.Errorf("validation failed for email at index %d: %s", i, err))
 				http.Error(w, fmt.Sprintf("Validation Failed for Email at Index %d: %s", i, err), http.StatusBadRequest)
 				return
 			}

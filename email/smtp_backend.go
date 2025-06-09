@@ -36,5 +36,5 @@ func (s *Session) Rcpt(toAddress string, opts *smtp.RcptOptions) error {
 	return nil
 }
 func (s *Session) Data(r io.Reader) error {
-	return s.engine.handlerIncoming(r)
+	return s.engine.incomingHandler(r)
 }

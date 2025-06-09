@@ -12,17 +12,6 @@ import (
 	"github.com/jhillyerd/enmime"
 )
 
-// todo: better errorhandler usage
-
-// Extracts the Host from an Email Address (e.g. bakonpancakz@gmail.com => gmail.com)
-func extractHostFromAddress(address string) (string, error) {
-	parts := strings.SplitN(address, "@", 2)
-	if len(parts) != 2 || parts[1] == "" {
-		return "", fmt.Errorf("invalid email address: %s", address)
-	}
-	return parts[1], nil
-}
-
 // Append a middleware function for outgoing emails
 func (e *Engine) UseOutgoing(handler HandlerMiddleware) {
 	e.outgoingMiddleware = append(e.outgoingMiddleware, handler)
@@ -43,13 +32,13 @@ func (e *Engine) SendEmail(email *Email) error {
 
 	// Sanity Checks
 	if len(email.To) == 0 {
-		return fmt.Errorf("no recipients")
+		return fmt.Errorf("outbound email contains no recipients")
 	}
 
 	// Run Middleware
 	for _, mw := range e.outgoingMiddleware {
 		if proceed, err := mw(email); !proceed {
-			return fmt.Errorf("cancelled by middleware: %s", err)
+			return fmt.Errorf("outbound email cancelled by middleware: %s", err)
 		}
 	}
 
@@ -84,21 +73,21 @@ func (e *Engine) SendEmail(email *Email) error {
 
 		// Build Envelope
 		if p, err := builder.Build(); err != nil {
-			return fmt.Errorf("unable to build envelope: %s", err)
+			return fmt.Errorf("cannot build outbound email: %s", err)
 		} else if err := p.Encode(&envelope); err != nil {
-			return fmt.Errorf("unable to encode envelope: %s", err)
+			return fmt.Errorf("cannot encode outbound email: %s", err)
 		}
 
 		// Sign Envelope
 		var complete bytes.Buffer
-		if e.OutgoingDKIMEnabled {
+		if e.outgoingDKIMSigner != nil {
 			// Sign Email using DKIM Key
 			if err := dkim.Sign(&complete, &envelope, &dkim.SignOptions{
 				Domain:   e.Domain,
-				Signer:   e.OutgoingDKIMSigner,
+				Signer:   e.outgoingDKIMSigner,
 				Selector: e.OutgoingSelectorName,
 			}); err != nil {
-				return fmt.Errorf("unable to sign envelope: %s", err)
+				return fmt.Errorf("cannot sign outbound email: %s", err)
 			}
 		} else {
 			// inb4 marked as spam or rejected
@@ -113,9 +102,9 @@ func (e *Engine) SendEmail(email *Email) error {
 		records, err := net.LookupMX(host)
 		if err != nil {
 			if e, ok := err.(*net.DNSError); ok && e.IsNotFound {
-				return fmt.Errorf("no mx records present for %s", host)
+				return fmt.Errorf("no mx records for outbound host '%s'", host)
 			} else {
-				return fmt.Errorf("mx records unresolvable for %s: %s", host, err)
+				return fmt.Errorf("cannot lookup mx records for outbound host '%s': %s", host, err)
 			}
 		}
 		sort.Slice(records, func(i, j int) bool {
@@ -146,4 +135,13 @@ func (e *Engine) SendEmail(email *Email) error {
 		return fmt.Errorf("email delivery failed:\n %s", strings.Join(attemptErrors, "\n"))
 	}
 	return nil
+}
+
+// Extracts the Host from an Email Address (e.g. bakonpancakz@gmail.com => gmail.com)
+func extractHostFromAddress(address string) (string, error) {
+	parts := strings.SplitN(address, "@", 2)
+	if len(parts) != 2 || parts[1] == "" {
+		return "", fmt.Errorf("invalid email address: %s", address)
+	}
+	return parts[1], nil
 }
